@@ -1,7 +1,6 @@
 require('dotenv').config();
 
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const bodyParser = require('body-parser');
 
 
@@ -13,19 +12,6 @@ const app = express();
 app.use(express.json());
 app.use(bodyParser.json());
 
-const verifyToken = (req, res, next) => {
-  const token = req.query.token;
-  console.log(token);
-  if (!token) return res.status(401).json({ error: 'Access denied. Token not provided.' });
-
-  try {
-    const decoded = jwt.verify(token, process.env.SECRET_KEY); // Replace 'yourSecretKey' with the same secret key used for signing
-    req.user = decoded;
-    next();
-  } catch (error) {
-    res.status(400).json({ error: 'Invalid token.' });
-  }
-};
 
 app.post('/postbooks', userMiddleware, async (req, res) => {
   const Bookname = req.body.Bookname;
@@ -114,7 +100,8 @@ app.post('/login', async (req, res) => {
 app.post('/rent',userMiddleware,async (req, res) => {
   const searchstring = req.body.bookname;
   const deliveryAddress = req.body.deliveryAddress;
-  const username=req.headers.username;
+  const username=req.body.username;
+  
   const reqdbook=await books.findOne({Bookname:searchstring})
   
   if (!reqdbook || !reqdbook.available) {
@@ -122,18 +109,30 @@ app.post('/rent',userMiddleware,async (req, res) => {
   }
   else{
     availablestock--;
-   if(availablestock==0){
-    reqdbook.available=false;
+   if(availablestock < 0){
+       res.json({mssg:book is out of stock})
    }
   }
-  const reqduser=await books.findOne({username:username})
-  const idt=reqdbook._id;
-  const Id=await books.updateOne({
-    "id":idt,
-    $push:rentedbooks
-  });
-  res.json({mssg:"book is rented"})
+  const rentingUser = await user.findOne({ username: username });
 
+    if(!rentingUser) {
+      console.error('User not found.');
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const bookObject = await books.findOne({ Bookname: searchstring });
+
+    if (!bookObject) {
+      console.error('Book not found.');
+      return res.status(404).json({ error: 'Book not found.' });
+    }
+
+    bookObject.reqdbooks.push(rentingUser._id);
+
+    await bookObject.save();
+
+    console.log('Book rented successfully!');
+    res.status(200).json({ message: 'Book rented successfully!' });
   //res.redirect(`/confirmRent?bookname=${reqdbook.searchstring}&deliveryAddress=${deliveryAddress}`);
 });
 
@@ -178,7 +177,7 @@ app.post('/rent',userMiddleware,async (req, res) => {
   }
 }); */
 
-app.get('/post-rent', verifyToken, async (req, res) => {
+/*app.get('/post-rent', verifyToken, async (req, res) => {
   
   try {
     const books = await All_books.find();
@@ -190,7 +189,7 @@ app.get('/post-rent', verifyToken, async (req, res) => {
 });
 app.get('/books', (req, res) => {
   res.json(books);
-});
+});*/
 
 app.listen(3000, () => {
   console.log('Server is running on port 3000');
