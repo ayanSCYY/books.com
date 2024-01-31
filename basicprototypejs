@@ -114,6 +114,23 @@ app.post('/login', async (req, res) => {
   }
 });
 
+app.post('/searchingbooks', async (req, res) => {
+  const Bookname = req.body.bookname;
+
+  try {
+    const reqdbook = await books.findOne({ Bookname });
+
+    if (!reqdbook) {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    res.json(reqdbook);
+  } catch (error) {
+    console.error('Error searching book:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.post('/rent', userMiddleware, async (req, res) => {
   const { Bookname, deliveryAddress, username } = req.body;
 
@@ -156,7 +173,6 @@ app.post('/rent', userMiddleware, async (req, res) => {
 
 //these route are in prototyype stage
 /* app.get('/confirmRent', (req, res) => {
-  
   const bookname = req.query.bookname;
   const deliveryAddress = req.query.deliveryAddress;
   console.log(bookname);
@@ -198,7 +214,7 @@ app.post('/confirmRent', (req, res) => {
 
 
 //this post-rent route require working, it is in prototype phase.
-app.get('/post-rent', verifyToken, async (req, res) => {
+/*app.get('/post-rent', verifyToken, async (req, res) => {
   try {
     const booksList = await books.find();
     res.json(booksList);
@@ -206,7 +222,7 @@ app.get('/post-rent', verifyToken, async (req, res) => {
     console.error('Error fetching books for rent:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
-});
+});*/
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
