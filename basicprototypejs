@@ -1,0 +1,200 @@
+require('dotenv').config();
+
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const bodyParser = require('body-parser');
+
+
+const userMiddleware = require('./zusermiddleware/usermiddle');
+const { user, books } = require('./zdb/db');
+
+const app = express();
+
+app.use(express.json());
+app.use(bodyParser.json());
+
+const verifyToken = (req, res, next) => {
+  const token = req.query.token;
+  console.log(token);
+  if (!token) return res.status(401).json({ error: 'Access denied. Token not provided.' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.SECRET_KEY); // Replace 'yourSecretKey' with the same secret key used for signing
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(400).json({ error: 'Invalid token.' });
+  }
+};
+
+app.post('/postbooks', userMiddleware, async (req, res) => {
+  const Bookname = req.body.Bookname;
+  const author = req.body.author;
+  const price_1_5 = req.body.price;
+  const username = req.body.username;
+
+  try {
+    const existingBook = await books.findOne({ Bookname: Bookname });
+
+    if (existingBook) {
+      existingBook.availablestock = (existingBook.availablestock || 0 ) + 1;
+      await existingBook.save();
+    } else {
+      const newBook = new books({
+        Bookname: Bookname,
+        author: author,
+        price_1_5: price_1_5,
+      });
+
+      await newBook.save();
+    }
+
+    const postingUser = await user.findOne({ username: username });
+
+    if (!postingUser) {
+      console.error('User not found.');
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const bookObject = await books.findOne({ Bookname: Bookname });
+
+    if (!bookObject) {
+      console.error('Book not found.');
+      return res.status(404).json({ error: 'Book not found.' });
+    }
+
+    bookObject.postedbooks.push(postingUser._id);
+
+    await bookObject.save();
+
+    console.log('Book added successfully!');
+    res.status(200).json({ message: 'Book added successfully!' });
+  } catch (error) {
+    console.error('Error adding book:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+
+app.post('/signup',async (req,res) => {
+  const username=req.body.username;
+  const password=req.body.password;
+  const rollnumber=req.body.rollnumber;
+
+  const existinguser=await user.findOne({username:username});
+  if(existinguser){
+    res.json({mssg:"username exists try another one"})
+  }
+  const nuser=new user({
+    username:username,
+    password:password,
+    rollnumber:rollnumber
+  })
+  await nuser.save();
+  res.json({mssg:"completed"})
+})
+
+
+app.post('/login', async (req, res) => {
+  const username = req.body.username;
+  const password = req.body.password;
+
+  const users = await user.findOne({ username: username, password: password });
+
+  if (users) {
+    const token = jwt.sign({ username: username }, process.env.SECRET_KEY); 
+    console.log(token)
+    res.redirect(`/post-rent?token=${token}`);
+  } else {
+    res.status(401).json({ error: 'Invalid credentials' });
+  }
+});
+
+app.post('/rent',userMiddleware,async (req, res) => {
+  const searchstring = req.body.bookname;
+  const deliveryAddress = req.body.deliveryAddress;
+  const username=req.headers.username;
+  const reqdbook=await books.findOne({Bookname:searchstring})
+  
+  if (!reqdbook || !reqdbook.available) {
+    return res.status(404).json({ error: 'Book not found or already rented' });
+  }
+  else{
+    availablestock--;
+   if(availablestock==0){
+    reqdbook.available=false;
+   }
+  }
+  const reqduser=await books.findOne({username:username})
+  const idt=reqdbook._id;
+  const Id=await books.updateOne({
+    "id":idt,
+    $push:rentedbooks
+  });
+  res.json({mssg:"book is rented"})
+
+  //res.redirect(`/confirmRent?bookname=${reqdbook.searchstring}&deliveryAddress=${deliveryAddress}`);
+});
+
+/* app.get('/confirmRent', (req, res) => {
+  
+  const bookname = req.query.bookname;
+  const deliveryAddress = req.query.deliveryAddress;
+  console.log(bookname);
+  res.send(`
+  <form action="/confirmRent" method="post">
+    <p>Book: ${req.query.bookname}</p>
+    <p>Delivery Address: ${req.query.deliveryAddress}</p>
+    <button type="submit" name="decision" value="yes">Yes</button>
+    <button type="submit" name="decision" value="no">No</button>
+  </form>
+`);
+}); */
+
+/* app.post('/confirmRent', (req, res) => {
+  const decision = req.body.decision; 
+  const bookname = req.body.bookname;
+  
+
+  if (decision === 'yes') {
+    const rentedBook = All_users.find((b) => b.title === bookname);
+
+    if (!rentedBook) {
+      console.log(`Book "${bookname}" not found in All_users array.`);
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    if (!rentedBook.available) {
+      console.log(`Book "${bookname}" is already rented.`);
+      return res.status(404).json({ error: 'Book already rented' });
+    }
+    rentedBook.available = false;
+    return res.send('Rent request accepted. Book rented!');
+  } else if (decision === 'no') {
+    return res.send('Rent request declined by book owner.');
+  } else {
+    return res.status(400).json({ error: 'Invalid decision' });
+  }
+}); */
+
+app.get('/post-rent', verifyToken, async (req, res) => {
+  
+  try {
+    const books = await All_books.find();
+    res.json(books);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+app.get('/books', (req, res) => {
+  res.json(books);
+});
+
+app.listen(3000, () => {
+  console.log('Server is running on port 3000');
+});  
+//required work on whole renting domain.
+//required also on confirm-rent portasl.
+//payment getway.
