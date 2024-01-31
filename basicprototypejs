@@ -214,7 +214,7 @@ app.post('/confirmRent', (req, res) => {
 
 
 //this post-rent route require working, it is in prototype phase.
-/*app.get('/post-rent', verifyToken, async (req, res) => {
+app.get('/seeingbookslibrary', verifyToken, async (req, res) => {
   try {
     const booksList = await books.find();
     res.json(booksList);
@@ -222,7 +222,7 @@ app.post('/confirmRent', (req, res) => {
     console.error('Error fetching books for rent:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
-});*/
+});
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
