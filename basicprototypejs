@@ -171,9 +171,9 @@ app.post('/rent', userMiddleware, async (req, res) => {
     <button type="submit" name="decision" value="no">No</button>
   </form>
 `);
-}); */
+}); 
 
-/* app.post('/confirmRent', (req, res) => {
+app.post('/confirmRent', (req, res) => {
   const decision = req.body.decision; 
   const bookname = req.body.bookname;
   
