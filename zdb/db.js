@@ -15,11 +15,11 @@ const BookSchema=new mongoose.Schema({
         type: Number,
         default: 1},
     //image:URL,
-    postedbooks:[{
+    bookpostedby:[{
         type:mongoose.Schema.Types.ObjectId,
         ref:'user'
     }],
-    rentedbooks:[{
+    bookspostedby:[{
          type:mongoose.Schema.Types.ObjectId,
          ref:'user'
     }]
