@@ -213,7 +213,7 @@ app.post('/confirmRent', (req, res) => {
 }); */
 
 
-//this post-rent route require working, it is in prototype phase.
+//this route require working, it is in prototype phase.
 app.get('/seeingbookslibrary', verifyToken, async (req, res) => {
   try {
     const booksList = await books.find();
