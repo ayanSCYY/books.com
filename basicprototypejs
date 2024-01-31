@@ -98,21 +98,22 @@ app.post('/login', async (req, res) => {
 });
 
 app.post('/rent',userMiddleware,async (req, res) => {
-  const searchstring = req.body.bookname;
+  const Bookname = req.body.bookname;
   const deliveryAddress = req.body.deliveryAddress;
   const username=req.body.username;
   
-  const reqdbook=await books.findOne({Bookname:searchstring})
+  const reqdbook=await books.findOne({ Bookname: Bookname});
+
+  console.log(reqdbook);
   
-  if (!reqdbook || !reqdbook.available) {
+   if (!reqdbook ) {
     return res.status(404).json({ error: 'Book not found or already rented' });
   }
-  else{
-    availablestock--;
-   if(availablestock < 0){
+  
+      reqdbook.availablestock--;
+  if(reqdbook.availablestock < 0){
        res.json({mssg:"book is out of stock"})
    }
-  }
   const rentingUser = await user.findOne({ username: username });
 
     if(!rentingUser) {
@@ -120,14 +121,14 @@ app.post('/rent',userMiddleware,async (req, res) => {
       return res.status(404).json({ error: 'User not found.' });
     }
 
-    const bookObject = await books.findOne({ Bookname: searchstring });
+    const bookObject = await books.findOne({ Bookname:Bookname });
 
     if (!bookObject) {
       console.error('Book not found.');
       return res.status(404).json({ error: 'Book not found.' });
     }
 
-    bookObject.reqdbooks.push(rentingUser._id);
+    bookObject.rentedbooks.push(rentingUser._id);
 
     await bookObject.save();
 
@@ -135,6 +136,7 @@ app.post('/rent',userMiddleware,async (req, res) => {
     res.status(200).json({ message: 'Book rented successfully!' });
   //res.redirect(`/confirmRent?bookname=${reqdbook.searchstring}&deliveryAddress=${deliveryAddress}`);
 });
+
 
 /* app.get('/confirmRent', (req, res) => {
   
