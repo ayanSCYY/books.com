@@ -110,7 +110,7 @@ app.post('/rent',userMiddleware,async (req, res) => {
   else{
     availablestock--;
    if(availablestock < 0){
-       res.json({mssg:book is out of stock})
+       res.json({mssg:"book is out of stock"})
    }
   }
   const rentingUser = await user.findOne({ username: username });
