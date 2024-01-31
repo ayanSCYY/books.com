@@ -105,13 +105,11 @@ app.post('/login', async (req, res) => {
 
     if (existingUser) {
       const token = jwt.sign({ username }, process.env.SECRET_KEY);
-      console.log(token);
       res.redirect(`/post-rent?token=${token}`);
     } else {
       res.status(401).json({ error: 'Invalid credentials' });
     }
   } catch (error) {
-    console.error('Error logging in user:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -123,12 +121,12 @@ app.post('/rent', userMiddleware, async (req, res) => {
     const reqdbook = await books.findOne({ Bookname });
 
     if (!reqdbook) {
-      return res.status(404).json({ error: 'Book not found or already rented' });
+      return res.status(404).json({ error: 'Book not found' });
     }
 
     reqdbook.availablestock--;
 
-    if (reqdbook.availablestock < 0) {
+    if (reqdbook.availablestock <0) {
       res.json({ mssg: 'Book is out of stock' });
     } else {
       const rentingUser = await user.findOne({ username });
@@ -138,26 +136,25 @@ app.post('/rent', userMiddleware, async (req, res) => {
         return res.status(404).json({ error: 'User not found.' });
       }
 
-      const bookObject = await books.findOne({ Bookname });
-
-      if (!bookObject) {
+      if (!reqdbook) {
         console.error('Book not found.');
         return res.status(404).json({ error: 'Book not found.' });
       }
 
-      bookObject.rentedbooks.push(rentingUser._id);
+      reqdbook.rentedbooks.push(rentingUser._id);
 
-      await bookObject.save();
+      await reqdbook.save();
 
       console.log('Book rented successfully!');
       res.status(200).json({ message: 'Book rented successfully!' });
     }
   } catch (error) {
     console.error('Error renting book:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error or cannot find book' });
   }
 });
-//these route are in protype stage
+
+//these route are in prototyype stage
 /* app.get('/confirmRent', (req, res) => {
   
   const bookname = req.query.bookname;
@@ -214,6 +211,7 @@ app.get('/post-rent', verifyToken, async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-//required work on user request based renting domain.
-//required work on confirm-rent portal.
-//and payment getway.
+//currently working on -->>
+//1.user request based renting domain.
+//2.confirm-rent portal.
+//3.payment getway.
